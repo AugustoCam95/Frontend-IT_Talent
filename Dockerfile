@@ -1,28 +1,32 @@
-# Etapa de construção
-FROM node:16 AS build
+# Etapa 1: Build do projeto
+FROM node:18 AS builder
 
-# Diretório de trabalho
+# Definindo o diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de configuração e instalar dependências
+# Copiando os arquivos package.json e package-lock.json
 COPY package*.json ./
+
+# Instalando as dependências
 RUN npm install
 
-# Copiar o restante dos arquivos do projeto e construir o frontend
+# Copiando o restante dos arquivos do projeto
 COPY . .
+
+# Build do projeto
 RUN npm run build
 
-# Etapa de produção
+# Etapa 2: Servindo os arquivos estáticos com Nginx
 FROM nginx:alpine
 
-# Copiar o build da etapa anterior
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copiar a configuração do Nginx
+# Copiando a configuração do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expor a porta 5173
-EXPOSE 5173
+# Copiando os arquivos construídos para a pasta do Nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Comando para iniciar o Nginx
+# Expondo a porta 80
+EXPOSE 80
+
+# Comando de inicialização do Nginx
 CMD ["nginx", "-g", "daemon off;"]
